@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Intrusion Detection Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * { font-family: 'Inter', sans-serif; }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .glow-green {
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+        }
+        
+        .glow-red {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse-slow 3s infinite;
+        }
+        
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .animate-bounce-subtle {
+            animation: bounce-subtle 2s infinite;
+        }
+        
+        @keyframes bounce-subtle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        .animate-slide-in {
+            animation: slide-in 0.6s ease-out forwards;
+        }
+        
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-fade-in {
+            animation: fade-in 0.8s ease-out forwards;
+        }
+        
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .btn-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .packet-item {
+            transition: all 0.3s ease;
+        }
+        
+        .packet-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <!-- Header -->
+    <div class="container mx-auto px-6 py-8">
+        <div class="text-center mb-12 animate-fade-in">
+            <h1 class="text-5xl font-bold text-white mb-4">
+                <i class="fas fa-shield-alt mr-4"></i>
+                Network Intrusion Detection
+            </h1>
+            <p class="text-xl text-white/80">Real-time ML-powered network security monitoring</p>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="flex justify-center space-x-6 mb-12 animate-slide-in">
+            <button id="startBtn" onclick="startSimulation()" 
+                class="btn-glow bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300">
+                <i class="fas fa-play mr-2"></i> Start Simulation
+            </button>
+            <button id="stopBtn" onclick="stopSimulation()" 
+                class="btn-glow bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 opacity-50">
+                <i class="fas fa-stop mr-2"></i> Stop Simulation
+            </button>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <!-- Total Packets -->
+            <div class="glass rounded-2xl p-6 stat-card animate-slide-in">
+                <div class="flex items-center">
+                    <div class="bg-blue-500 p-4 rounded-full mr-4">
+                        <i class="fas fa-network-wired text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-white/70 text-sm font-medium">Total Packets</p>
+                        <p id="totalPackets" class="text-white text-3xl font-bold">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Normal Traffic -->
+            <div class="glass rounded-2xl p-6 stat-card animate-slide-in">
+                <div class="flex items-center">
+                    <div class="bg-green-500 p-4 rounded-full mr-4 animate-pulse-slow">
+                        <i class="fas fa-check-circle text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-white/70 text-sm font-medium">Normal Traffic</p>
+                        <p id="normalPackets" class="text-white text-3xl font-bold">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Threats Detected -->
+            <div class="glass rounded-2xl p-6 stat-card animate-slide-in">
+                <div class="flex items-center">
+                    <div class="bg-red-500 p-4 rounded-full mr-4 animate-bounce-subtle">
+                        <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-white/70 text-sm font-medium">Threats Detected</p>
+                        <p id="attackPackets" class="text-white text-3xl font-bold">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attack Rate -->
+            <div class="glass rounded-2xl p-6 stat-card animate-slide-in">
+                <div class="flex items-center">
+                    <div class="bg-orange-500 p-4 rounded-full mr-4">
+                        <i class="fas fa-percentage text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-white/70 text-sm font-medium">Attack Rate</p>
+                        <p id="attackRate" class="text-white text-3xl font-bold">0%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <!-- Traffic Chart -->
+            <div class="glass rounded-2xl p-6 animate-fade-in">
+                <h3 class="text-white text-xl font-semibold mb-6 text-center">
+                    <i class="fas fa-chart-line mr-2"></i>Traffic Over Time
+                </h3>
+                <div class="h-64">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Attack Types Chart -->
+            <div class="glass rounded-2xl p-6 animate-fade-in">
+                <h3 class="text-white text-xl font-semibold mb-6 text-center">
+                    <i class="fas fa-chart-pie mr-2"></i>Attack Distribution
+                </h3>
+                <div class="h-64">
+                    <canvas id="attackChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Traffic Feed -->
+        <div class="glass rounded-2xl p-6 animate-fade-in">
+            <h3 class="text-white text-xl font-semibold mb-6 text-center">
+                <i class="fas fa-stream mr-2"></i>Live Traffic Feed
+            </h3>
+            <div id="packetFeed" class="h-96 overflow-y-auto scrollbar-hide space-y-3">
+                <div class="text-center text-white/70 py-8">
+                    <i class="fas fa-satellite-dish text-4xl mb-4"></i>
+                    <p>Starting traffic simulation...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let trafficChart, attackChart;
+        let simulationRunning = false;
+        let updateInterval;
+
+        // Initialize charts
+        function initCharts() {
+            // Traffic Chart
+            const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+            trafficChart = new Chart(trafficCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Normal Traffic',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Attack Traffic',
+                        data: [],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: { 
+                            beginAtZero: true,
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+
+            // Attack Chart
+            const attackCtx = document.getElementById('attackChart').getContext('2d');
+            attackChart = new Chart(attackCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Normal', 'Attacks'],
+                    datasets: [{
+                        data: [100, 0],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 3,
+                        borderColor: 'rgba(255,255,255,0.2)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: 'white', padding: 20 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function startSimulation() {
+            if (simulationRunning) return;
+            
+            fetch('/api/start_simulation')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'started') {
+                        simulationRunning = true;
+                        document.getElementById('startBtn').classList.add('opacity-50');
+                        document.getElementById('stopBtn').classList.remove('opacity-50');
+                        updateInterval = setInterval(updateDashboard, 1000);
+                        showNotification('Traffic simulation started!', 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Failed to start simulation', 'error');
+                });
+        }
+
+        function stopSimulation() {
+            if (!simulationRunning) return;
+            
+            fetch('/api/stop_simulation')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'stopped') {
+                        simulationRunning = false;
+                        document.getElementById('startBtn').classList.remove('opacity-50');
+                        document.getElementById('stopBtn').classList.add('opacity-50');
+                        clearInterval(updateInterval);
+                        showNotification('Traffic simulation stopped!', 'info');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function updateDashboard() {
+            // Update statistics
+            fetch('/api/statistics')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('totalPackets').textContent = data.total_packets;
+                    document.getElementById('normalPackets').textContent = data.normal_packets;
+                    document.getElementById('attackPackets').textContent = data.attack_packets;
+                    document.getElementById('attackRate').textContent = data.attack_rate.toFixed(1) + '%';
+                    
+                    updateCharts(data);
+                })
+                .catch(error => console.error('Error updating stats:', error));
+
+            // Update live feed
+            fetch('/api/live_feed')
+                .then(response => response.json())
+                .then(data => {
+                    updateLiveFeed(data.packets);
+                })
+                .catch(error => console.error('Error updating feed:', error));
+        }
+
+        function updateCharts(data) {
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString();
+            
+            // Update traffic chart
+            if (trafficChart.data.labels.length > 20) {
+                trafficChart.data.labels.shift();
+                trafficChart.data.datasets[0].data.shift();
+                trafficChart.data.datasets[1].data.shift();
+            }
+            
+            trafficChart.data.labels.push(timeLabel);
+            trafficChart.data.datasets[0].data.push(data.normal_packets);
+            trafficChart.data.datasets[1].data.push(data.attack_packets);
+            trafficChart.update('none');
+            
+            // Update attack chart
+            const total = data.normal_packets + data.attack_packets;
+            if (total > 0) {
+                attackChart.data.datasets[0].data = [data.normal_packets, data.attack_packets];
+                attackChart.update('none');
+            }
+        }
+
+        function updateLiveFeed(packets) {
+            if (!packets || packets.length === 0) return;
+            
+            const feedElement = document.getElementById('packetFeed');
+            feedElement.innerHTML = '';
+            
+            packets.reverse().forEach(packet => {
+                const isAttack = packet.is_attack;
+                const confidence = (packet.confidence * 100).toFixed(1);
+                const time = new Date(packet.timestamp).toLocaleTimeString();
+                
+                const packetDiv = document.createElement('div');
+                packetDiv.className = `packet-item glass rounded-xl p-4 ${isAttack ? 'glow-red' : 'glow-green'}`;
+                
+                packetDiv.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-3 h-3 rounded-full ${isAttack ? 'bg-red-500 animate-pulse' : 'bg-green-500'}"></div>
+                            <div>
+                                <div class="text-white font-medium">${packet.src_ip}:${packet.src_port} → ${packet.dst_ip}:${packet.dst_port}</div>
+                                <div class="text-white/70 text-sm">${packet.protocol} • ${packet.service} • ${time}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-white font-semibold ${isAttack ? 'text-red-300' : 'text-green-300'}">${packet.prediction}</div>
+                            <div class="text-white/70 text-sm">${confidence}% confidence</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 bg-white/10 rounded-full h-2 overflow-hidden">
+                        <div class="h-full ${isAttack ? 'bg-red-500' : 'bg-green-500'} transition-all duration-300" 
+                             style="width: ${confidence}%"></div>
+                    </div>
+                `;
+                
+                feedElement.appendChild(packetDiv);
+            });
+        }
+
+        function showNotification(message, type) {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
+            };
+            
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+        });
+    </script>
+</body>
+</html>
